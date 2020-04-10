@@ -1,6 +1,8 @@
 //  Tutorial from : https://devblogs.nvidia.com/accelerated-ray-tracing-cuda/
 
 #include <iostream>
+#include <time.h>
+
 #include <cudaErrors.h>
 
 #include <Render.h>
@@ -11,15 +13,18 @@
 
 int main() {
 
+	//Adding Clock to profile//
+	clock_t start,stop;
+
 	// Window size //
 	const unsigned int nx = 640;
 	const unsigned int ny = 480;
 	unsigned int num_pixels = nx*ny;
 
 	// Host/GPU Device mem allocation //
-	// 3 because of RGB //
-	size_t fb_size = 3*num_pixels*sizeof(float);
-	float *fb;
+	// vec3 because of RGB //
+	size_t fb_size = num_pixels*sizeof(vec3);
+	vec3 *fb;
 	checkCudaErrors(cudaMallocManaged((void **)&fb, fb_size));
 
 	// The image is broken in to tx x ty shape//
@@ -29,10 +34,22 @@ int main() {
 	dim3 blocks(nx/tx+1,ny/ty+1);
 	dim3 threads(tx,ty);
 
+	start = clock();
+
 	// Call to renderer //
-	render<<<blocks,threads>>>(fb,nx,ny);
+	render<<<blocks,threads>>>(fb,nx,ny,
+								vec3(-2.0f, -1.0f, -1.0f),
+								vec3( 4.0f,  0.0f,  0.0f),
+								vec3( 0.0f,  2.0f,  0.0f),
+								vec3( 0.0f,  0.0f,  0.0f)
+								);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());
+
+	stop = clock();
+
+	double timer_seconds = ((double)(stop - start)) / CLOCKS_PER_SEC;
+	std::cout << "Time per frame : "<<timer_seconds << " seconds"  << std::endl;
 
 	// Output to PPM //
 	saveImagePPM(fb,nx,ny,"Img.ppm");

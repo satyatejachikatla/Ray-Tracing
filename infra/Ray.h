@@ -13,3 +13,4 @@ class ray {
 		vec3 A;
 		vec3 B;
 };
+

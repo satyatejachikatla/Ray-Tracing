@@ -1,21 +1,21 @@
 #include <Render.h>
-#include <Vector.h>
-#include <Ray.h>
+
 
 __device__ vec3 color(const ray& r) {
-   vec3 unit_direction = unit_vector(r.direction());
-   float t = 0.5f*(unit_direction.y() + 1.0f);
-   return (1.0f-t)*vec3(1.0, 1.0, 1.0) + t*vec3(0.5, 0.7, 1.0);
+	vec3 unit_direction = unit_vector(r.direction());
+	float t = 0.5f*(unit_direction.y() + 1.0f);
+	return (1.0f-t)*vec3(1.0f, 1.0f, 1.0f) + t*vec3(0.5f, 0.7f, 1.0f);
 }
 
-__global__ void render(float *fb, int max_x, int max_y) {
+__global__ void render(vec3 *fb, int max_x, int max_y, vec3 lower_left_corner, vec3 horizontal, vec3 vertical, vec3 origin) {
 
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if((i >= max_x) || (j >= max_y)) return;
-	// 3 is because of rgb //
-	int pixel_index = j*max_x*3 + i*3;
-	fb[pixel_index + 0] = float(i) / max_x;
-	fb[pixel_index + 1] = float(j) / max_y;
-	fb[pixel_index + 2] = 0.2;
+
+	int pixel_index = j*max_x + i;
+	float u = float(i) / float(max_x);
+	float v = float(j) / float(max_y);
+	ray r(origin, lower_left_corner + u*horizontal + v*vertical);
+	fb[pixel_index] = color(r);
 }
