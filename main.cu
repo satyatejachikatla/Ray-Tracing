@@ -20,7 +20,6 @@ int main() {
 	const unsigned int nx = 1200;
 	const unsigned int ny = 600;
 	unsigned int num_pixels = nx*ny;
-	float aspect_ratio = nx/ny;
 
 	// Host/GPU Device mem allocation //
 	// vec3 because of RGB //
@@ -37,12 +36,22 @@ int main() {
 
 	start = clock();
 
+	//Objects init on GPU
+	hitable **d_list;
+	checkCudaErrors(cudaMalloc((void **)&d_list, 2*sizeof(hitable *))); //2 will be created in create world
+	hitable **d_world;
+	checkCudaErrors(cudaMalloc((void **)&d_world, sizeof(hitable *)));
+	create_world<<<1,1>>>(d_list,d_world);
+	checkCudaErrors(cudaGetLastError());
+	checkCudaErrors(cudaDeviceSynchronize());
+
 	// Call to renderer //
 	render<<<blocks,threads>>>(fb,nx,ny,
 								vec3(-2.0f, -1.0f, -1.0f), // Left Bottom corner
 								vec3( 4.0f,  0.0f,  0.0f), // X - axis width from Left Boot corner
 								vec3( 0.0f,  2.0f,  0.0f), // Y - axis height from Left Boot corner
-								vec3( 0.0f,  0.0f,  0.0f)  // Origin Location.
+								vec3( 0.0f,  0.0f,  0.0f), // Origin Location.
+								d_world                    // Za warudo
 								);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());

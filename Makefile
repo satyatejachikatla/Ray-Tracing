@@ -11,13 +11,11 @@ BUILT_LIBS :=
 
 LDFLAGS += $(shell pkg-config opencv --cflags --libs)
 
-OBJS := infra/*.o *.o 
+OBJS := infra/*.o infra/Objects/*.o *.o 
 
 all:
 	$(MAKE) -C infra
 	$(MAKE) app
-
-	chmod 0777 Img.jpg
 
 app:
 	$(NVCC) $(NVCCFLAGS) -dc main.cu $(LDFLAGS)
