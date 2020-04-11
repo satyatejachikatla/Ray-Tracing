@@ -4,12 +4,28 @@
 #include <Hitable.h>
 #include <Objects/Sphere.h>
 
+
+__global__ void render_init(int max_x, int max_y, curandState *rand_state) {
+	int i = threadIdx.x + blockIdx.x * blockDim.x;
+	int j = threadIdx.y + blockIdx.y * blockDim.y;
+	if((i >= max_x) || (j >= max_y)) return;
+	int pixel_index = j*max_x + i;
+	//Each thread gets same seed, a different sequence number, no offset
+	curand_init(1984, pixel_index, 0, &rand_state[pixel_index]);
+}
+
 __global__ void create_world(hitable **d_list, hitable **d_world) {
 	if (threadIdx.x == 0 && blockIdx.x == 0) {
 		*(d_list)   = new sphere(vec3(0,0,-1), 0.5);
 		*(d_list+1) = new sphere(vec3(0,-100.5,-1), 100);
 		*d_world    = new hitable_list(d_list,2);
 	}
+}
+
+__global__ void free_world(hitable **d_list, hitable **d_world) {
+	delete *(d_list);
+	delete *(d_list+1);
+	delete *d_world;
 }
 
 __device__ vec3 color(const ray& r, hitable **world) {

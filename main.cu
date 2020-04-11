@@ -3,6 +3,8 @@
 #include <iostream>
 #include <time.h>
 
+#include <curand_kernel.h>
+
 #include <cudaErrors.h>
 
 #include <Render.h>
@@ -15,6 +17,8 @@ int main() {
 
 	//Adding Clock to profile//
 	clock_t start,stop;
+
+	start = clock();
 
 	// Window size //
 	const unsigned int nx = 1200;
@@ -34,7 +38,17 @@ int main() {
 	dim3 blocks(nx/tx+1,ny/ty+1);
 	dim3 threads(tx,ty);
 
-	start = clock();
+	//Curand state var for each pixel//
+	curandState *d_rand_state;
+	checkCudaErrors(cudaMalloc((void **)&d_rand_state, num_pixels*sizeof(curandState)));
+
+	// Init the curand Variables //
+	render_init<<<blocks, threads>>>(nx, ny, d_rand_state);
+	checkCudaErrors(cudaGetLastError());
+	checkCudaErrors(cudaDeviceSynchronize());
+//	render<<<blocks, threads>>>(fb, nx, ny,  ns, d_camera, d_world, d_rand_state);
+//	checkCudaErrors(cudaGetLastError());
+//	checkCudaErrors(cudaDeviceSynchronize());
 
 	//Objects init on GPU
 	hitable **d_list;
@@ -61,11 +75,17 @@ int main() {
 	double timer_seconds = ((double)(stop - start)) / CLOCKS_PER_SEC;
 	std::cout << "Time per frame : "<<timer_seconds << " seconds"  << std::endl;
 
-	// Output to PPM //
+	// Output to img //
 	saveImage(fb,nx,ny,"Img.jpg");
 
 	// Clean up //
+	free_world<<<1,1>>>(d_list,d_world);
+	checkCudaErrors(cudaGetLastError());
+	checkCudaErrors(cudaFree(d_list));
+	checkCudaErrors(cudaFree(d_world));
 	checkCudaErrors(cudaFree(fb));
+
+	cudaDeviceReset();
 
 	return 0;
 }

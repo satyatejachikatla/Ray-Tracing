@@ -1,7 +1,7 @@
 NVCC := nvcc 
 MAKE ?= make
 
-LIBS := 
+LIBS := -lcurand
 
 NVCCFLAGS := -I. \
 			 -I./infra \
