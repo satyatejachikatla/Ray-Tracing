@@ -24,7 +24,7 @@ int main() {
 	// Window size //
 	const unsigned int nx = 1200;
 	const unsigned int ny = 600;
-	unsigned int ns = 100; // Number of samples per pixel
+	unsigned int ns = 100; // Number of samples per pixel for anti aliasing
 	unsigned int num_pixels = nx*ny;
 
 	// Host/GPU Device mem allocation //
@@ -51,7 +51,7 @@ int main() {
 
 	// Objects init on GPU //
 	hitable **d_list;
-	checkCudaErrors(cudaMalloc((void **)&d_list, 2*sizeof(hitable *))); //2 will be created in create world
+	checkCudaErrors(cudaMalloc((void **)&d_list, 2*sizeof(hitable *))); //2 objects will be created in create world
 	hitable **d_world;
 	checkCudaErrors(cudaMalloc((void **)&d_world, sizeof(hitable *)));
 	camera **d_camera;
