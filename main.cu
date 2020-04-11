@@ -10,6 +10,7 @@
 #include <Render.h>
 #include <Vector.h>
 #include <Ray.h>
+#include <Camera.h>
 
 #include <ImageHelper.h>
 
@@ -23,6 +24,7 @@ int main() {
 	// Window size //
 	const unsigned int nx = 1200;
 	const unsigned int ny = 600;
+	unsigned int ns = 100; // Number of samples per pixel
 	unsigned int num_pixels = nx*ny;
 
 	// Host/GPU Device mem allocation //
@@ -46,26 +48,24 @@ int main() {
 	render_init<<<blocks, threads>>>(nx, ny, d_rand_state);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());
-//	render<<<blocks, threads>>>(fb, nx, ny,  ns, d_camera, d_world, d_rand_state);
-//	checkCudaErrors(cudaGetLastError());
-//	checkCudaErrors(cudaDeviceSynchronize());
 
-	//Objects init on GPU
+	// Objects init on GPU //
 	hitable **d_list;
 	checkCudaErrors(cudaMalloc((void **)&d_list, 2*sizeof(hitable *))); //2 will be created in create world
 	hitable **d_world;
 	checkCudaErrors(cudaMalloc((void **)&d_world, sizeof(hitable *)));
-	create_world<<<1,1>>>(d_list,d_world);
+	camera **d_camera;
+	checkCudaErrors(cudaMalloc((void **)&d_camera, sizeof(camera *)));
+
+	create_world<<<1,1>>>(d_list,d_world,d_camera);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());
 
 	// Call to renderer //
-	render<<<blocks,threads>>>(fb,nx,ny,
-								vec3(-2.0f, -1.0f, -1.0f), // Left Bottom corner
-								vec3( 4.0f,  0.0f,  0.0f), // X - axis width from Left Boot corner
-								vec3( 0.0f,  2.0f,  0.0f), // Y - axis height from Left Boot corner
-								vec3( 0.0f,  0.0f,  0.0f), // Origin Location.
-								d_world                    // Za warudo
+	render<<<blocks,threads>>>(fb,nx,ny,ns,
+								d_camera,                  // Camera
+								d_world,                   // Za warudo
+								d_rand_state               // Curand state per pixel
 								);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());
@@ -79,10 +79,12 @@ int main() {
 	saveImage(fb,nx,ny,"Img.jpg");
 
 	// Clean up //
-	free_world<<<1,1>>>(d_list,d_world);
+	free_world<<<1,1>>>(d_list,d_world,d_camera);
 	checkCudaErrors(cudaGetLastError());
-	checkCudaErrors(cudaFree(d_list));
+	checkCudaErrors(cudaFree(d_camera));
 	checkCudaErrors(cudaFree(d_world));
+	checkCudaErrors(cudaFree(d_list));
+	checkCudaErrors(cudaFree(d_rand_state));
 	checkCudaErrors(cudaFree(fb));
 
 	cudaDeviceReset();

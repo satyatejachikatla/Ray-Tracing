@@ -14,18 +14,20 @@ __global__ void render_init(int max_x, int max_y, curandState *rand_state) {
 	curand_init(1984, pixel_index, 0, &rand_state[pixel_index]);
 }
 
-__global__ void create_world(hitable **d_list, hitable **d_world) {
+__global__ void create_world(hitable **d_list, hitable **d_world, camera **d_camera) {
 	if (threadIdx.x == 0 && blockIdx.x == 0) {
 		*(d_list)   = new sphere(vec3(0,0,-1), 0.5);
 		*(d_list+1) = new sphere(vec3(0,-100.5,-1), 100);
 		*d_world    = new hitable_list(d_list,2);
+		*d_camera   = new camera();
 	}
 }
 
-__global__ void free_world(hitable **d_list, hitable **d_world) {
+__global__ void free_world(hitable **d_list, hitable **d_world, camera **d_camera) {
 	delete *(d_list);
 	delete *(d_list+1);
 	delete *d_world;
+	delete *d_camera;
 }
 
 __device__ vec3 color(const ray& r, hitable **world) {
@@ -40,16 +42,20 @@ __device__ vec3 color(const ray& r, hitable **world) {
 	}
 }
 
-__global__ void render(vec3 *fb, int max_x, int max_y,vec3 lower_left_corner, vec3 horizontal, vec3 vertical, vec3 origin, hitable **world)
-{
+__global__ void render(vec3 *fb, int max_x, int max_y, int ns, camera **cam, hitable **world, curandState *rand_state) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if((i >= max_x) || (j >= max_y)) return;
 
 	int pixel_index = j*max_x + i;
-	float u = float(i) / float(max_x);
-	float v = float(j) / float(max_y);
-	ray r(origin, lower_left_corner + u*horizontal + v*vertical);
-	fb[pixel_index] = color(r, world);
+	curandState local_rand_state = rand_state[pixel_index];
+	vec3 col(0,0,0);
+	for(int s=0; s < ns; s++) {
+		float u = float(i + curand_uniform(&local_rand_state)) / float(max_x);
+		float v = float(j + curand_uniform(&local_rand_state)) / float(max_y);
+		ray r = (*cam)->get_ray(u,v);
+		col += color(r, world);
+	}
+	fb[pixel_index] = col/float(ns);
 }
 
