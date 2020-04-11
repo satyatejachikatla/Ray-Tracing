@@ -7,7 +7,7 @@ NVCCFLAGS := -I. \
 			 -I.. \
 			 -dlink
 
-#LDFLAGS += $(shell pkg-config opencv --cflags --libs)
+LDFLAGS += $(shell pkg-config opencv --cflags --libs)
 
 OBJS := *.o
 

@@ -17,9 +17,10 @@ int main() {
 	clock_t start,stop;
 
 	// Window size //
-	const unsigned int nx = 640;
-	const unsigned int ny = 480;
+	const unsigned int nx = 1200;
+	const unsigned int ny = 600;
 	unsigned int num_pixels = nx*ny;
+	float aspect_ratio = nx/ny;
 
 	// Host/GPU Device mem allocation //
 	// vec3 because of RGB //
@@ -38,10 +39,10 @@ int main() {
 
 	// Call to renderer //
 	render<<<blocks,threads>>>(fb,nx,ny,
-								vec3(-2.0f, -1.0f, -1.0f),
-								vec3( 4.0f,  0.0f,  0.0f),
-								vec3( 0.0f,  2.0f,  0.0f),
-								vec3( 0.0f,  0.0f,  0.0f)
+								vec3(-2.0f, -1.0f, -1.0f), // Left Bottom corner
+								vec3( 4.0f,  0.0f,  0.0f), // X - axis width from Left Boot corner
+								vec3( 0.0f,  2.0f,  0.0f), // Y - axis height from Left Boot corner
+								vec3( 0.0f,  0.0f,  0.0f)  // Origin Location.
 								);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());
@@ -52,7 +53,7 @@ int main() {
 	std::cout << "Time per frame : "<<timer_seconds << " seconds"  << std::endl;
 
 	// Output to PPM //
-	saveImagePPM(fb,nx,ny,"Img.ppm");
+	saveImage(fb,nx,ny,"Img.jpg");
 
 	// Clean up //
 	checkCudaErrors(cudaFree(fb));
