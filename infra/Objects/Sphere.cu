@@ -1,7 +1,7 @@
 #include <Sphere.h>
 
 __device__ sphere::sphere() {}
-__device__ sphere::sphere(vec3 cen, float r) : center(cen), radius(r)  {};
+__device__ sphere::sphere(vec3 cen, float r,material* m) : center(cen), radius(r), mat_ptr(m)  {};
 
 __device__ bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& rec) const {
 	vec3 oc = r.origin() - center;
@@ -16,6 +16,7 @@ __device__ bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& 
 			rec.p = r.point_at_parameter(rec.t);
             vec3 outward_normal = (rec.p - center) / radius;
             rec.set_face_normal(r, outward_normal);
+            rec.mat_ptr = mat_ptr;
 			return true;
 		}
 		temp = (-b + sqrt(discriminant)) / a;
@@ -24,6 +25,7 @@ __device__ bool sphere::hit(const ray& r, float t_min, float t_max, hit_record& 
 			rec.p = r.point_at_parameter(rec.t);
             vec3 outward_normal = (rec.p - center) / radius;
             rec.set_face_normal(r, outward_normal);
+            rec.mat_ptr = mat_ptr;
 			return true;
 		}
 	}

@@ -2,10 +2,8 @@
 
 #include <Render.h>
 #include <Hitable.h>
+#include <Material.h>
 #include <Objects/Sphere.h>
-
-
-#define RANDVEC3 vec3(curand_uniform(local_rand_state),curand_uniform(local_rand_state),curand_uniform(local_rand_state))
 
 __global__ void render_init(int max_x, int max_y, curandState *rand_state) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -18,49 +16,39 @@ __global__ void render_init(int max_x, int max_y, curandState *rand_state) {
 
 __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_camera) {
 	if (threadIdx.x == 0 && blockIdx.x == 0) {
-		*(d_list)   = new sphere(vec3(0,0,-1), 0.5);
-		*(d_list+1) = new sphere(vec3(0,-100.5,-1), 100);
+		*(d_list)   = new sphere(vec3(0,0,-1), 0.5,
+									new lambertian(vec3(0.8,0.3,0.3)));
+		*(d_list+1) = new sphere(vec3(0,-100.5,-1), 100,
+									new lambertian(vec3(0.8,0.8,0.0)));
 		*d_world    = new hitable_list(d_list,2);
 		*d_camera   = new camera();
 	}
 }
 
 __global__ void free_world(hitable **d_list, hitable **d_world, camera **d_camera) {
-	delete *(d_list);
-	delete *(d_list+1);
+	delete ((sphere*)d_list[0])->mat_ptr;
+	delete ((sphere*)d_list[1])->mat_ptr;
+	delete  d_list[0];
+	delete  d_list[1];
 	delete *d_world;
 	delete *d_camera;
 }
 
-
-
-__device__ vec3 random_in_unit_sphere(curandState *local_rand_state) {
-	vec3 p;
-	do {
-		p = 2.0f*RANDVEC3 - vec3(1,1,1);
-	} while (p.squared_length() >= 1.0f);
-	return p;
-}
-
-__device__ vec3 random_in_hemisphere(const vec3& normal,curandState *local_rand_state) {
-    vec3 in_unit_sphere = random_in_unit_sphere(local_rand_state);
-    if (dot(in_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
-        return in_unit_sphere;
-    else
-        return -in_unit_sphere;
-}
-
-
-
 __device__ vec3 color(const ray& r, hitable **world,curandState *local_rand_state) {
 	ray cur_ray = r;
-	float cur_attenuation = 1.0f;
+	vec3 cur_attenuation(1.0f,1.0f,1.0f);
 	for(int i = 0; i < 50; i++) { // Here 50 bounces of ray is max
 		hit_record rec;
 		if ((*world)->hit(cur_ray, 0.001f, FLT_MAX, rec)) {
-			vec3 target = rec.p + random_in_hemisphere(rec.normal,local_rand_state);
-			cur_attenuation *= 0.5f;
-			cur_ray = ray(rec.p, target-rec.p);
+			ray scattered;
+			vec3 attenuation;
+			if(rec.mat_ptr->scatter(cur_ray,rec,attenuation,scattered,local_rand_state)){
+				cur_attenuation *= attenuation;
+				cur_ray = scattered;
+			}
+			else {
+				return vec3(0.0f,0.0f,0.0f);
+			}
 		}
 		else {
 			vec3 unit_direction = unit_vector(cur_ray.direction());

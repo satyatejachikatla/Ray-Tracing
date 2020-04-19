@@ -3,6 +3,9 @@
 //https://github.com/rogerallen/raytracinginoneweekendincuda/tree/ch05_normals_cuda
 
 #include <Ray.h>
+#include <Material.h>
+
+class material; // Defined in Material.h
 
 struct hit_record
 {
@@ -11,6 +14,7 @@ struct hit_record
 	vec3 normal;
 
 	bool front_face;
+	material* mat_ptr;
 
 	__device__ inline void set_face_normal(const ray& r, const vec3& outward_normal) {
 		front_face = dot(r.direction(), outward_normal) < 0;
