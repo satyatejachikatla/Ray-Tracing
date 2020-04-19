@@ -16,11 +16,15 @@ __global__ void render_init(int max_x, int max_y, curandState *rand_state) {
 
 __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_camera) {
 	if (threadIdx.x == 0 && blockIdx.x == 0) {
-		*(d_list)   = new sphere(vec3(0,0,-1), 0.5,
-									new lambertian(vec3(0.8,0.3,0.3)));
-		*(d_list+1) = new sphere(vec3(0,-100.5,-1), 100,
-									new lambertian(vec3(0.8,0.8,0.0)));
-		*d_world    = new hitable_list(d_list,2);
+		*(d_list)   = new sphere(vec3(0,0,-1), 0.5f,
+									new lambertian(vec3(0.8f,0.3f,0.3f)));
+		*(d_list+1) = new sphere(vec3(0,-100.5f,-1), 100,
+									new lambertian(vec3(0.8f,0.8f,0.0f)));
+		*(d_list+2) = new sphere(vec3(1,0,-1), 0.5f,
+									new metal(vec3(0.8f,0.6f,0.2f),1.0f));
+		*(d_list+3) = new sphere(vec3(-1,0,-1), 0.5,
+									new metal(vec3(0.8f,0.8f,0.8f),0.0));
+		*d_world    = new hitable_list(d_list,4);
 		*d_camera   = new camera();
 	}
 }
@@ -28,8 +32,12 @@ __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_cam
 __global__ void free_world(hitable **d_list, hitable **d_world, camera **d_camera) {
 	delete ((sphere*)d_list[0])->mat_ptr;
 	delete ((sphere*)d_list[1])->mat_ptr;
+	delete ((sphere*)d_list[2])->mat_ptr;
+	delete ((sphere*)d_list[3])->mat_ptr;
 	delete  d_list[0];
 	delete  d_list[1];
+	delete  d_list[2];
+	delete  d_list[3];
 	delete *d_world;
 	delete *d_camera;
 }

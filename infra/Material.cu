@@ -23,10 +23,18 @@ __device__ vec3 reflect(const vec3& v,const vec3& n){
 }
 
 
-__device__ lambertian::lambertian(const vec3&a) : albedo(a) {}
+__device__ lambertian::lambertian(const vec3& a) : albedo(a) {}
 __device__ bool lambertian::scatter(const ray&r_in,const hit_record&rec,vec3& attenuation,ray& scattered,curandState *local_rand_state) const{
 	vec3 target = rec.p + random_in_hemisphere(rec.normal,local_rand_state);
 	scattered = ray(rec.p, target-rec.p);
 	attenuation = albedo;
 	return true;
+}
+
+__device__ metal::metal(const vec3& a,float f) : albedo(a), fuzz(f) {}
+__device__ bool metal::scatter(const ray&r_in,const hit_record&rec,vec3& attenuation,ray& scattered,curandState *local_rand_state) const{
+	vec3 reflected = reflect(unit_vector(r_in.direction()),rec.normal);
+	scattered = ray(rec.p, reflected + fuzz*random_in_hemisphere(rec.normal,local_rand_state));
+	attenuation = albedo;
+	return (dot(scattered.direction(),rec.normal) > 0.0f);
 }
