@@ -5,6 +5,8 @@
 #include <Objects/Sphere.h>
 
 
+#define RANDVEC3 vec3(curand_uniform(local_rand_state),curand_uniform(local_rand_state),curand_uniform(local_rand_state))
+
 __global__ void render_init(int max_x, int max_y, curandState *rand_state) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
@@ -32,15 +34,20 @@ __global__ void free_world(hitable **d_list, hitable **d_world, camera **d_camer
 
 
 
-
-#define RANDVEC3 vec3(curand_uniform(local_rand_state),curand_uniform(local_rand_state),curand_uniform(local_rand_state))
-
 __device__ vec3 random_in_unit_sphere(curandState *local_rand_state) {
 	vec3 p;
 	do {
 		p = 2.0f*RANDVEC3 - vec3(1,1,1);
 	} while (p.squared_length() >= 1.0f);
 	return p;
+}
+
+__device__ vec3 random_in_hemisphere(const vec3& normal,curandState *local_rand_state) {
+    vec3 in_unit_sphere = random_in_unit_sphere(local_rand_state);
+    if (dot(in_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+        return in_unit_sphere;
+    else
+        return -in_unit_sphere;
 }
 
 
@@ -51,7 +58,7 @@ __device__ vec3 color(const ray& r, hitable **world,curandState *local_rand_stat
 	for(int i = 0; i < 50; i++) { // Here 50 bounces of ray is max
 		hit_record rec;
 		if ((*world)->hit(cur_ray, 0.001f, FLT_MAX, rec)) {
-			vec3 target = rec.p + rec.normal + random_in_unit_sphere(local_rand_state);
+			vec3 target = rec.p + random_in_hemisphere(rec.normal,local_rand_state);
 			cur_attenuation *= 0.5f;
 			cur_ray = ray(rec.p, target-rec.p);
 		}
