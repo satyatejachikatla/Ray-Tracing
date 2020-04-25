@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <time.h>
+#include <sstream>
+#include <iomanip>
 
 #include <curand_kernel.h>
 
@@ -15,11 +17,6 @@
 #include <ImageHelper.h>
 
 int main() {
-
-	//Adding Clock to profile//
-	clock_t start,stop;
-
-	start = clock();
 
 	// Window size //
 	const unsigned int nx = 1200;
@@ -60,29 +57,53 @@ int main() {
 	camera **d_camera;
 	checkCudaErrors(cudaMalloc((void **)&d_camera, sizeof(camera *)));
 
-	create_world<<<1,1>>>(d_list,d_world,d_camera,nx,ny,d_rand_state);
+	create_world<<<1,1>>>(d_list,d_world,d_rand_state);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());
 
-	// Call to renderer //
-	render<<<blocks,threads>>>(fb,nx,ny,ns,
-								d_camera,                  // Camera
-								d_world,                   // Za warudo
-								d_rand_state               // Curand state per pixel
-								);
-	checkCudaErrors(cudaGetLastError());
-	checkCudaErrors(cudaDeviceSynchronize());
+	unsigned int totalsteps = 100;
 
-	stop = clock();
+	for(unsigned int step = 0 ;step < totalsteps ; step++) {
+		//Adding Clock to profile//
+		clock_t start,stop;
 
-	double timer_seconds = ((double)(stop - start)) / CLOCKS_PER_SEC;
-	std::cout << "Time per frame : "<<timer_seconds << " seconds"  << std::endl;
+		start = clock();
 
-	// Output to img //
-	saveImage(fb,nx,ny,"Img.jpg");
+		// Init Camera //
+
+		init_cam<<<1,1>>>(d_camera,nx,ny,step,totalsteps);
+		checkCudaErrors(cudaGetLastError());
+		checkCudaErrors(cudaDeviceSynchronize());
+
+		// Call to renderer //
+		render<<<blocks,threads>>>(fb,nx,ny,ns,
+									d_camera,                  // Camera
+									d_world,                   // Za warudo
+									d_rand_state               // Curand state per pixel
+									);
+		checkCudaErrors(cudaGetLastError());
+		checkCudaErrors(cudaDeviceSynchronize());
+
+
+		// Delete Cam //
+
+		delete_cam<<<1,1>>>(d_camera);
+		checkCudaErrors(cudaGetLastError());
+
+		stop = clock();
+
+		double timer_seconds = ((double)(stop - start)) / CLOCKS_PER_SEC;
+		std::cout << "Time per frame : "<<timer_seconds << " seconds"  << std::endl;
+
+		std::stringstream ss;
+		ss << "./save_jpgs/Img-" << std::setfill('0') << std::setw(5) << step << ".jpg";
+
+		// Output to img //
+		saveImage(fb,nx,ny,ss.str().c_str());
+	}
 
 	// Clean up //
-	free_world<<<1,1>>>(d_list,d_world,d_camera);
+	free_world<<<1,1>>>(d_list,d_world);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaFree(d_camera));
 	checkCudaErrors(cudaFree(d_world));

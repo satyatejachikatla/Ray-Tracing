@@ -16,7 +16,7 @@ __global__ void render_init(int max_x, int max_y, curandState *rand_state) {
 
 #define RND (curand_uniform(&local_rand_state))
 
-__global__ void create_world(hitable **d_list, hitable **d_world, camera **d_camera,unsigned int nx,unsigned int ny,curandState *rand_state) {
+__global__ void create_world(hitable **d_list, hitable **d_world,curandState *rand_state) {
 	if (threadIdx.x == 0 && blockIdx.x == 0) {
 		curandState local_rand_state = *rand_state;
 
@@ -47,8 +47,13 @@ __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_cam
 		d_list[i++] = new sphere(vec3(0, 1,0),  1.0, new dielectric(1.5));
 		d_list[i++] = new sphere(vec3(-4, 1, 0), 1.0, new lambertian(vec3(0.4, 0.2, 0.1)));
 		d_list[i++] = new sphere(vec3(4, 1, 0),  1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
+	}
+}
 
-		vec3 lookfrom = vec3(13,2,3);
+__global__ void init_cam(camera **d_camera,unsigned int nx,unsigned int ny,unsigned int step,unsigned int total) {
+	if (threadIdx.x == 0 && blockIdx.x == 0) {
+
+		vec3 lookfrom = vec3(sin(float(step)/float(total)*2.0f*float(M_PI))*15,2,cos(float(step)/float(total)*2.0f*float(M_PI))*15);
 		vec3 lookat   = vec3(0,0,0);
 
 		float dist_to_focus = (lookfrom-lookat).length();
@@ -61,17 +66,21 @@ __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_cam
 								 30.0f,
 								 float(nx)/float(ny),
 								 aperture,
-								 dist_to_focus);
+								 dist_to_focus);	}
+}
+
+__global__ void delete_cam(camera **d_camera) {
+	if (threadIdx.x == 0 && blockIdx.x == 0) {		
+		delete *d_camera;
 	}
 }
 
-__global__ void free_world(hitable **d_list, hitable **d_world, camera **d_camera) {
+__global__ void free_world(hitable **d_list, hitable **d_world) {
 	for(int i=0; i<22*22+3+1; i++) {
 		delete ((sphere*)d_list[i])->mat_ptr;
 		delete  d_list[i];
 	}
 	delete *d_world;
-	delete *d_camera;
 }
 
 __device__ vec3 color(const ray& r, hitable **world,curandState *local_rand_state) {
