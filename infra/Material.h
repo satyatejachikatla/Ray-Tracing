@@ -26,3 +26,9 @@ class metal : public material {
 		__device__ bool scatter(const ray& r_in,const hit_record& rec,vec3& attenuation,ray& scattered,curandState * local_rand_state) const;
 };
 
+class dielectric : public material {
+	public:
+		float ref_idx;
+		__device__ dielectric(float ri);
+		__device__ bool scatter(const ray& r_in, const hit_record& rec, vec3& attenuation, ray& scattered,curandState * local_rand_state) const;
+};

@@ -35,8 +35,8 @@ int main() {
 
 	// The image is broken in to tx x ty shape//
 	// GPU Thread block dimention subject to change //
-	unsigned int tx = 16;
-	unsigned int ty = 16;
+	unsigned int tx = 32;
+	unsigned int ty = 32;
 	dim3 blocks(nx/tx+1,ny/ty+1);
 	dim3 threads(tx,ty);
 
@@ -51,7 +51,7 @@ int main() {
 
 	// Objects init on GPU //
 	hitable **d_list;
-	checkCudaErrors(cudaMalloc((void **)&d_list, 4*sizeof(hitable *))); //4 objects will be created in create world
+	checkCudaErrors(cudaMalloc((void **)&d_list, 5*sizeof(hitable *))); //4 objects will be created in create world
 	hitable **d_world;
 	checkCudaErrors(cudaMalloc((void **)&d_world, sizeof(hitable *)));
 	camera **d_camera;

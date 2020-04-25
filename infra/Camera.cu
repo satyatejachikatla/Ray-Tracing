@@ -9,4 +9,5 @@ __device__ camera::camera() {
 }
 __device__ ray camera::get_ray(float u, float v) { 
 	return ray(origin, lower_left_corner + u*horizontal + v*vertical - origin);
+	//return ray(lower_left_corner + u*horizontal + v*vertical - vec3(0,0,-1),vec3(0.0f,0.0f,-1.0f));
 }

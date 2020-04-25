@@ -17,14 +17,16 @@ __global__ void render_init(int max_x, int max_y, curandState *rand_state) {
 __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_camera) {
 	if (threadIdx.x == 0 && blockIdx.x == 0) {
 		*(d_list)   = new sphere(vec3(0,0,-1), 0.5f,
-									new lambertian(vec3(0.8f,0.3f,0.3f)));
+									new lambertian(vec3(float(0xf4), float(0x79), float(0x83))/vec3(256.0f,256.0f,256.0f)));
 		*(d_list+1) = new sphere(vec3(0,-100.5f,-1), 100,
-									new lambertian(vec3(0.8f,0.8f,0.0f)));
+									new metal(vec3(float(0x87), float(0xd3), float(0x7c))/vec3(256.0f,256.0f,256.0f),0.2f));
 		*(d_list+2) = new sphere(vec3(1,0,-1), 0.5f,
-									new metal(vec3(0.8f,0.6f,0.2f),1.0f));
+									new metal(vec3(0.8f,0.8f,0.8f),0.1f));
 		*(d_list+3) = new sphere(vec3(-1,0,-1), 0.5,
-									new metal(vec3(0.8f,0.8f,0.8f),0.0));
-		*d_world    = new hitable_list(d_list,4);
+									new dielectric(1.5f));
+		*(d_list+4) = new sphere(vec3(-1,0,-1), -0.45,
+									new dielectric(1.5f));
+		*d_world    = new hitable_list(d_list,5);
 		*d_camera   = new camera();
 	}
 }
@@ -61,7 +63,7 @@ __device__ vec3 color(const ray& r, hitable **world,curandState *local_rand_stat
 		else {
 			vec3 unit_direction = unit_vector(cur_ray.direction());
 			float t = 0.5f*(unit_direction.y() + 1.0f);
-			vec3 c = (1.0f-t)*vec3(1.0, 1.0, 1.0) + t*vec3(0.5, 0.7, 1.0);
+			vec3 c = (1.0f-t)*vec3(1.0f, 1.0f, 1.0f) + t*vec3(0.5f, 0.7f, 1.0f);
 			return cur_attenuation * c;
 		}
 	}
