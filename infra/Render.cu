@@ -26,12 +26,21 @@ __global__ void create_world(hitable **d_list, hitable **d_world, camera **d_cam
 									new dielectric(1.5f));
 		*(d_list+4) = new sphere(vec3(-1,0,-1), -0.48,
 									new dielectric(1.5f));
+
+		vec3 lookfrom = vec3(-2,2,1);
+		vec3 lookat   = vec3(0,0,-1);
+
+		float dist_to_focus = (lookfrom-lookat).length();
+		float aperture = 2.0f;
+
 		*d_world    = new hitable_list(d_list,5);
-		*d_camera   = new camera(vec3(-2,2,1),
-								 vec3(0,0,-1),
+		*d_camera   = new camera(lookfrom,
+								 lookat,
 								 vec3(0,1,0),
 								 90.0f,
-								 float(nx)/float(ny));
+								 float(nx)/float(ny),
+								 aperture,
+								 dist_to_focus);
 	}
 }
 
@@ -86,7 +95,7 @@ __global__ void render(vec3 *fb, int max_x, int max_y, int ns, camera **cam, hit
 	for(int s=0; s < ns; s++) {
 		float u = float(i + curand_uniform(&local_rand_state)) / float(max_x);
 		float v = float(j + curand_uniform(&local_rand_state)) / float(max_y);
-		ray r = (*cam)->get_ray(u,v);
+		ray r = (*cam)->get_ray(u,v,&local_rand_state);
 		col += color(r, world,&local_rand_state);
 	}
 	fb[pixel_index] = col/float(ns);
