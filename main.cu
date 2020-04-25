@@ -22,8 +22,8 @@ int main() {
 	start = clock();
 
 	// Window size //
-	const unsigned int nx = 12000;
-	const unsigned int ny = 6000;
+	const unsigned int nx = 1200;
+	const unsigned int ny = 600;
 	unsigned int ns = 100; // Number of samples per pixel for anti aliasing
 	unsigned int num_pixels = nx*ny;
 
@@ -57,7 +57,7 @@ int main() {
 	camera **d_camera;
 	checkCudaErrors(cudaMalloc((void **)&d_camera, sizeof(camera *)));
 
-	create_world<<<1,1>>>(d_list,d_world,d_camera);
+	create_world<<<1,1>>>(d_list,d_world,d_camera,nx,ny);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());
 

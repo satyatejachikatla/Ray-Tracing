@@ -14,20 +14,24 @@ __global__ void render_init(int max_x, int max_y, curandState *rand_state) {
 	curand_init(1984, pixel_index, 0, &rand_state[pixel_index]);
 }
 
-__global__ void create_world(hitable **d_list, hitable **d_world, camera **d_camera) {
+__global__ void create_world(hitable **d_list, hitable **d_world, camera **d_camera,unsigned int nx,unsigned int ny) {
 	if (threadIdx.x == 0 && blockIdx.x == 0) {
 		*(d_list)   = new sphere(vec3(0,0,-1), 0.5f,
 									new lambertian(vec3(float(0xf4), float(0x79), float(0x83))/vec3(256.0f,256.0f,256.0f)));
 		*(d_list+1) = new sphere(vec3(0,-100.5f,-1), 100,
-									new metal(vec3(float(0x87), float(0xd3), float(0x7c))/vec3(256.0f,256.0f,256.0f),0.2f));
+									new lambertian(vec3(float(0x87), float(0xd3), float(0x7c))/vec3(256.0f,256.0f,256.0f)));
 		*(d_list+2) = new sphere(vec3(1,0,-1), 0.5f,
 									new metal(vec3(0.8f,0.8f,0.8f),0.1f));
 		*(d_list+3) = new sphere(vec3(-1,0,-1), 0.5,
 									new dielectric(1.5f));
-		*(d_list+4) = new sphere(vec3(-1,0,-1), -0.45,
+		*(d_list+4) = new sphere(vec3(-1,0,-1), -0.48,
 									new dielectric(1.5f));
 		*d_world    = new hitable_list(d_list,5);
-		*d_camera   = new camera();
+		*d_camera   = new camera(vec3(-2,2,1),
+								 vec3(0,0,-1),
+								 vec3(0,1,0),
+								 90.0f,
+								 float(nx)/float(ny));
 	}
 }
 
@@ -36,10 +40,11 @@ __global__ void free_world(hitable **d_list, hitable **d_world, camera **d_camer
 	delete ((sphere*)d_list[1])->mat_ptr;
 	delete ((sphere*)d_list[2])->mat_ptr;
 	delete ((sphere*)d_list[3])->mat_ptr;
+	delete ((sphere*)d_list[4])->mat_ptr;
 	delete  d_list[0];
 	delete  d_list[1];
 	delete  d_list[2];
-	delete  d_list[3];
+	delete  d_list[4];
 	delete *d_world;
 	delete *d_camera;
 }
