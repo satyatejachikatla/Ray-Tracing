@@ -24,7 +24,7 @@ int main() {
 	// Window size //
 	const unsigned int nx = 1200;
 	const unsigned int ny = 600;
-	unsigned int ns = 100; // Number of samples per pixel for anti aliasing
+	unsigned int ns = 200; // Number of samples per pixel for anti aliasing
 	unsigned int num_pixels = nx*ny;
 
 	// Host/GPU Device mem allocation //
@@ -50,14 +50,17 @@ int main() {
 	checkCudaErrors(cudaDeviceSynchronize());
 
 	// Objects init on GPU //
+
+	int num_hitables = 22*22+1+3;
+
 	hitable **d_list;
-	checkCudaErrors(cudaMalloc((void **)&d_list, 5*sizeof(hitable *))); //4 objects will be created in create world
+	checkCudaErrors(cudaMalloc((void **)&d_list, num_hitables*sizeof(hitable *)));
 	hitable **d_world;
 	checkCudaErrors(cudaMalloc((void **)&d_world, sizeof(hitable *)));
 	camera **d_camera;
 	checkCudaErrors(cudaMalloc((void **)&d_camera, sizeof(camera *)));
 
-	create_world<<<1,1>>>(d_list,d_world,d_camera,nx,ny);
+	create_world<<<1,1>>>(d_list,d_world,d_camera,nx,ny,d_rand_state);
 	checkCudaErrors(cudaGetLastError());
 	checkCudaErrors(cudaDeviceSynchronize());
 
